@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>二维码格式验证工具</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        
+        header {
+            background: #4a00e0;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+        
+        .subtitle {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .scan-section {
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .camera-container {
+            width: 100%;
+            height: 250px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            position: relative;
+            border: 2px dashed #ccc;
+        }
+        
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .scan-area {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 180px;
+            height: 180px;
+            border: 2px solid #4a00e0;
+            border-radius: 10px;
+            box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+        }
+        
+        .scan-line {
+            position: absolute;
+            height: 2px;
+            width: 100%;
+            background: #4a00e0;
+            top: 0;
+            animation: scan 2s linear infinite;
+        }
+        
+        @keyframes scan {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+        
+        .btn {
+            background: #4a00e0;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 50px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: all 0.3s;
+            display: inline-block;
+            width: 80%;
+            max-width: 250px;
+        }
+        
+        .btn:hover {
+            background: #3a00b0;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn-secondary {
+            background: #8e2de2;
+        }
+        
+        .result-section {
+            padding: 20px;
+            display: none;
+        }
+        
+        .result-card {
+            background: #f9f9f9;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .status {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .status.valid {
+            background: #e6f7ee;
+            color: #00a65a;
+        }
+        
+        .status.invalid {
+            background: #fde9e9;
+            color: #f44336;
+        }
+        
+        .field {
+            margin-bottom: 10px;
+        }
+        
+        .field-name {
+            font-weight: bold;
+            color: #555;
+            display: block;
+            margin-bottom: 3px;
+        }
+        
+        .field-value {
+            font-family: monospace;
+            padding: 8px;
+            background: #fff;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        
+        .error {
+            color: #f44336;
+            font-size: 0.9rem;
+            margin-top: 3px;
+        }
+        
+        .success {
+            color: #00a65a;
+            font-size: 0.9rem;
+            margin-top: 3px;
+        }
+        
+        .raw-data {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        
+        footer {
+            text-align: center;
+            color: white;
+            margin-top: 20px;
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+        
+        #file-input {
+            display: none;
+        }
+        
+        .instructions {
+            background: #fff8e1;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-size: 0.9rem;
+        }
+        
+        .instructions h3 {
+            color: #ff8f00;
+            margin-bottom: 8px;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 5px;
+        }
+        
+        .deploy-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-size: 0.9rem;
+        }
+        
+        .deploy-info h3 {
+            color: #1565c0;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>二维码格式验证工具</h1>
+            <p class="subtitle">扫描并验证二维码内容格式</p>
+        </header>
+        
+        <div class="scan-section">
+            <div class="camera-container">
+                <video id="video" autoplay playsinline></video>
+                <div class="scan-area">
+                    <div class="scan-line"></div>
+                </div>
+            </div>
+            
+            <button id="start-button" class="btn">启动摄像头</button>
+            <button id="stop-button" class="btn btn-secondary" style="display:none;">停止摄像头</button>
+            <input type="file" id="file-input" accept="image/*">
+            <button id="upload-button" class="btn">上传二维码图片</button>
+            
+            <div class="instructions">
+                <h3>使用说明：</h3>
+                <ul>
+                    <li>点击"启动摄像头"扫描二维码</li>
+                    <li>或点击"上传二维码图片"从相册选择</li>
+                    <li>系统将自动验证格式并显示结果</li>
+                </ul>
+            </div>
+            
+            <div class="deploy-info">
+                <h3>GitHub Pages部署成功！</h3>
+                <p>此工具已通过GitHub Pages部署，可随时随地通过浏览器访问。</p>
+            </div>
+        </div>
+        
+        <div class="result-section" id="result-section">
+            <div class="result-card">
+                <div class="result-header">
+                    <h2>验证结果</h2>
+                    <div id="overall-status" class="status"></div>
+                </div>
+                
+                <div id="field-results">
+                    <!-- 动态生成的验证结果 -->
+                </div>
+            </div>
+            
+            <div class="raw-data">
+                <strong>原始数据：</strong>
+                <div id="raw-data-content"></div>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>二维码格式验证工具 © 2023 | 基于GitHub Pages部署</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script>
+        // 定义验证规则
+        const validationRules = {
+            'V': {
+                pattern: /^V\d{6}$/,
+                description: '供应商代码应为V后跟6位数字',
+                required: true
+            },
+            '1P': {
+                pattern: /^1P[A-Z0-9]{4}-[A-Z0-9]{1,3}$/,
+                description: '内部零件号格式应为1PXXXX-X或1PXXXX-XXX',
+                required: true
+            },
+            'D': {
+                pattern: /^D\d{8}$/,
+                description: '日期格式应为DYYYYMMDD',
+                required: true,
+                validation: function(value) {
+                    // 提取日期部分 (去掉前缀'D')
+                    const dateStr = value.substring(1);
+                    const year = parseInt(dateStr.substring(0, 4));
+                    const month = parseInt(dateStr.substring(4, 6));
+                    const day = parseInt(dateStr.substring(6, 8));
+                    
+                    // 简单验证日期有效性
+                    if (month < 1 || month > 12) return false;
+                    if (day < 1 || day > 31) return false;
+                    
+                    // 更精确的验证可以根据需要添加
+                    return true;
+                }
+            },
+            '2P': {
+                pattern: /^2P[A-Z0-9]{3,8}$/,
+                description: '二级零件号应为2P后跟3-8位字母数字',
+                required: false
+            }
+            // 可以根据需要添加更多规则
+        };
+
+        // DOM元素
+        const video = document.getElementById('video');
+        const startButton = document.getElementById('start-button');
+        const stopButton = document.getElementById('stop-button');
+        const uploadButton = document.getElementById('upload-button');
+        const fileInput = document.getElementById('file-input');
+        const resultSection = document.getElementById('result-section');
+        const fieldResults = document.getElementById('field-results');
+        const rawDataContent = document.getElementById('raw-data-content');
+        const overallStatus = document.getElementById('overall-status');
+
+        let scanning = false;
+        let stream = null;
+
+        // 启动摄像头
+        startButton.addEventListener('click', async () => {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "environment" } 
+                });
+                video.srcObject = stream;
+                startButton.style.display = 'none';
+                stopButton.style.display = 'inline-block';
+                scanning = true;
+                requestAnimationFrame(tick);
+            } catch (err) {
+                alert('无法访问摄像头: ' + err.message);
+            }
+        });
+
+        // 停止摄像头
+        stopButton.addEventListener('click', () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            startButton.style.display = 'inline-block';
+            stopButton.style.display = 'none';
+            scanning = false;
+        });
+
+        // 上传图片
+        uploadButton.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files.length > 0) {
+                const file = e.target.files[0];
+                const img = new Image();
+                img.onload = () => {
+                    processImage(img);
+                };
+                img.src = URL.createObjectURL(file);
+            }
+        });
+
+        // 二维码扫描和处理
+        function tick() {
+            if (video.readyState === video.HAVE_ENOUGH_DATA && scanning) {
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const context = canvas.getContext('2d');
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height);
+                
+                if (code) {
+                    processQRCode(code.data);
+                    scanning = false; // 找到二维码后停止扫描
+                }
+            }
+            
+            if (scanning) {
+                requestAnimationFrame(tick);
+            }
+        }
+
+        // 处理二维码数据
+        function processQRCode(data) {
+            rawDataContent.textContent = data;
+            
+            // 分割字段
+            const fields = data.split(':');
+            let allValid = true;
+            let resultsHTML = '';
+            
+            // 验证每个字段
+            for (const field of fields) {
+                let matched = false;
+                
+                for (const [prefix, rule] of Object.entries(validationRules)) {
+                    if (field.startsWith(prefix)) {
+                        matched = true;
+                        const isValidPattern = rule.pattern.test(field);
+                        let isValidCustom = true;
+                        
+                        if (isValidPattern && rule.validation) {
+                            isValidCustom = rule.validation(field);
+                        }
+                        
+                        const isValid = isValidPattern && isValidCustom;
+                        allValid = allValid && isValid;
+                        
+                        resultsHTML += `
+                            <div class="field">
+                                <span class="field-name">${prefix}</span>
+                                <div class="field-value">${field}</div>
+                                ${isValid ? 
+                                    `<div class="success">✓ 格式正确</div>` : 
+                                    `<div class="error">✗ ${rule.description}</div>`
+                                }
+                            </div>
+                        `;
+                        break;
+                    }
+                }
+                
+                if (!matched) {
+                    allValid = false;
+                    resultsHTML += `
+                        <div class="field">
+                            <span class="field-name">未知字段</span>
+                            <div class="field-value">${field}</div>
+                            <div class="error">✗ 未知字段格式</div>
+                        </div>
+                    `;
+                }
+            }
+            
+            // 检查必填字段
+            for (const [prefix, rule] of Object.entries(validationRules)) {
+                if (rule.required && !fields.some(field => field.startsWith(prefix))) {
+                    allValid = false;
+                    resultsHTML += `
+                        <div class="field">
+                            <span class="field-name">${prefix}</span>
+                            <div class="field-value">缺失</div>
+                            <div class="error">✗ 缺少必填字段: ${prefix}</div>
+                        </div>
+                    `;
+                }
+            }
+            
+            fieldResults.innerHTML = resultsHTML;
+            overallStatus.textContent = allValid ? '有效' : '无效';
+            overallStatus.className = allValid ? 'status valid' : 'status invalid';
+            resultSection.style.display = 'block';
+            
+            // 滚动到结果部分
+            resultSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 处理上传的图片
+        function processImage(img) {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const context = canvas.getContext('2d');
+            context.drawImage(img, 0, 0, canvas.width, canvas.height);
+            
+            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height);
+            
+            if (code) {
+                processQRCode(code.data);
+            } else {
+                alert('未检测到二维码，请尝试其他图片');
+            }
+        }
+
+        // 初始示例数据（用于演示）
+        window.onload = function() {
+            // 使用示例数据演示界面效果
+            const exampleData = "V123456:1P1234-B:D20230815:2PABC123";
+            rawDataContent.textContent = exampleData;
+            
+            let demoHTML = '';
+            const fields = exampleData.split(':');
+            
+            for (const field of fields) {
+                if (field.startsWith('V')) {
+                    demoHTML += `
+                        <div class="field">
+                            <span class="field-name">V</span>
+                            <div class="field-value">${field}</div>
+                            <div class="success">✓ 格式正确</div>
+                        </div>
+                    `;
+                } else if (field.startsWith('1P')) {
+                    demoHTML += `
+                        <div class="field">
+                            <span class="field-name">1P</span>
+                            <div class="field-value">${field}</div>
+                            <div class="success">✓ 格式正确</div>
+                        </div>
+                    `;
+                } else if (field.startsWith('D')) {
+                    demoHTML += `
+                        <div class="field">
+                            <span class="field-name">D</span>
+                            <div class="field-value">${field}</div>
+                            <div class="success">✓ 格式正确</div>
+                        </div>
+                    `;
+                } else if (field.startsWith('2P')) {
+                    demoHTML += `
+                        <div class="field">
+                            <span class="field-name">2P</span>
+                            <div class="field-value">${field}</div>
+                            <div class="success">✓ 格式正确</div>
+                        </div>
+                    `;
+                }
+            }
+            
+            fieldResults.innerHTML = demoHTML;
+            overallStatus.textContent = '有效';
+            overallStatus.className = 'status valid';
+        };
+    </script>
+</body>
+</html>
